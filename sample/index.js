@@ -1,40 +1,18 @@
-//@ts-check
-const {chromium, webkit, firefox} = require("playwright");
-const http = require('http');
+// Playwright 1.8.0 | docs: https://playwright.dev/docs/videos
+const { chromium, webkit, firefox } = require('playwright')
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end('Hello, world');
-});
+const fn = async () => {
+  const browser = await chromium.launch({
+    headless: false,
+    ignoreDefaultArgs: ['--mute-audio'],
+    args: ['--autoplay-policy=no-user-gesture-required']
+  })
+  const page = await browser.newPage({ recordVideo: { dir: 'videos/' } })
+  await page.goto('https://www.youtube.com/watch?v=pIWX6hF0C_s')
 
-const headless = !process.env.HEADFUL;
+  await page.waitForTimeout(14000)
 
-async function checkBrowser(browserType) {
-  try {
-    console.log(`Running ${browserType.name()}`);
-    const browser = await browserType.launch({ headless });
-    const page = await browser.newPage();
-    await page.goto('http://localhost:8080');
-    console.log(`- ${browserType.name()}:`, await page.evaluate(() => ({
-      width: document.documentElement.clientWidth,
-      clientHeight: document.documentElement.clientHeight
-    })));
-    await browser.close();
-    console.log(`SUCCESS running ${browserType.name()}`);
-    return true;
-  } catch (e) {
-    console.log(`FAILED running ${browserType.name()}`);
-    console.error(e);
-    return false;
-  }
+  await page.close()
+  await browser.close()
 }
-
-server.listen(8080, async () => {
-  let success = true;
-  success = (await checkBrowser(chromium)) && success;
-  success = (await checkBrowser(webkit)) && success;
-  success = (await checkBrowser(firefox)) && success;
-  server.close();
-  // in case some browsers failed to close - exit process.
-  process.exit(success ? 0 : 1);
-});
+fn()
